@@ -23,7 +23,8 @@ const modulesWithKeyword = require('../modules').modulesWithKeyword
 module.exports = function(app) {
   return {
     start: function() {
-      mountWebapps(app)
+      app.webapps = mountWebModules(app, 'signalk-webapp').map(moduleData => moduleData.metadata)
+      app.addons = mountWebModules(app, 'signalk-node-server-addon').map(moduleData => moduleData.metadata)
       mountApi(app)
     },
     // tslint:disable-next-line: no-empty
@@ -31,17 +32,18 @@ module.exports = function(app) {
   }
 }
 
-function mountWebapps(app) {
-  debug('MountWebApps')
-  modulesWithKeyword(app, 'signalk-webapp').forEach(moduleData => {
+function mountWebModules(app, keyword) {
+  debug(`mountWebModules:${keyword}`)
+  const modules = modulesWithKeyword(app, keyword)
+  modules.forEach(moduleData => {
     let webappPath = path.join(moduleData.location, moduleData.module)
     if (fs.existsSync(webappPath + '/public/')) {
       webappPath += '/public/'
     }
-    debug('Mounting webapp /' + moduleData.module + ':' + webappPath)
+    debug('Mounting web module /' + moduleData.module + ':' + webappPath)
     app.use('/' + moduleData.module, express.static(webappPath))
-    app.webapps.push(moduleData.metadata)
   })
+  return modules
 }
 
 function mountApi(app) {
